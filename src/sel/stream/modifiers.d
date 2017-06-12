@@ -19,6 +19,7 @@ import std.conv : to;
 import std.socket : Socket, Address;
 import std.system : Endian;
 import std.traits : isNumeric, isIntegral, Parameters;
+import std.zlib : Compress, UnCompress;
 
 import sel.stream.stream : Stream;
 
@@ -123,7 +124,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	
 }
 
-class CompressedStream : ModifierStream {
+class CompressedStream(T) : ModifierStream {
 	
 	private immutable size_t thresold;
 	
@@ -137,7 +138,7 @@ class CompressedStream : ModifierStream {
 			auto compress = new Compress();
 			auto data = compress.compress(buffer);
 			data ~= compress.flush();
-			buffer = varuint.encode(buffer.length.to!uint) ~ cast(ubyte[])data;
+			buffer = T.encode(buffer.length.to!uint) ~ cast(ubyte[])data; //TODO more types
 		} else {
 			buffer = ubyte.init ~ buffer;
 		}
@@ -146,7 +147,7 @@ class CompressedStream : ModifierStream {
 	
 	public override ubyte[] receive() {
 		ubyte[] buffer = super.receive();
-		uint length = varuint.fromBuffer(buffer);
+		uint length = T.fromBuffer(buffer);
 		if(length != 0) {
 			// compressed
 			auto uncompress = new UnCompress(length);
