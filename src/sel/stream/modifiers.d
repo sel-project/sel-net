@@ -49,11 +49,14 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 		enum requiredSize = 1;
 	}
 
+	private immutable size_t maxLength;
+
 	private ubyte[] next;
 	private size_t nextLength = 0;
 	
-	public this(Stream stream) {
+	public this(Stream stream, size_t maxLength=size_t.max) {
 		super(stream);
+		this.maxLength = maxLength;
 	}
 	
 	/**
@@ -71,7 +74,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	}
 	
 	/**
-	 * Returns: an array of bytes as indicated by the length or an empty array on failure
+	 * Returns: an array of bytes as indicated by the length or an empty array on failure or when the indicated length exceeds the max length
 	 */
 	public override ubyte[] receive() {
 		return this.receiveImpl();
@@ -87,8 +90,9 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 			} else {
 				this.nextLength = T.fromBuffer(this.next);
 			}
-			if(this.nextLength == 0) {
-				// valid connection but length was 0
+			if(this.nextLength == 0 || this.nextLength > this.maxLength) {
+				// valid connection but unacceptable length
+				this.nextLength = 0;
 				return [];
 			} else {
 				return this.receiveImpl();
@@ -115,6 +119,41 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 		} else {
 			return false;
 		}
+	}
+	
+}
+
+class CompressedStream : ModifierStream {
+	
+	private immutable size_t thresold;
+	
+	public this(Stream stream, size_t thresold) {
+		super(stream);
+		this.thresold = thresold;
+	}
+	
+	public override ptrdiff_t send(ubyte[] buffer) {
+		if(buffer.length >= this.thresold) {
+			auto compress = new Compress();
+			auto data = compress.compress(buffer);
+			data ~= compress.flush();
+			buffer = varuint.encode(buffer.length.to!uint) ~ cast(ubyte[])data;
+		} else {
+			buffer = ubyte.init ~ buffer;
+		}
+		return super.send(buffer);
+	}
+	
+	public override ubyte[] receive() {
+		ubyte[] buffer = super.receive();
+		uint length = varuint.fromBuffer(buffer);
+		if(length != 0) {
+			// compressed
+			auto uncompress = new UnCompress(length);
+			buffer = cast(ubyte[])uncompress.uncompress(buffer.dup);
+			buffer ~= cast(ubyte[])uncompress.flush();
+		}
+		return buffer;
 	}
 	
 }
