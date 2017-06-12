@@ -19,6 +19,7 @@ import std.socket : Socket, Address;
 class Stream {
 	
 	public Socket socket;
+	protected ptrdiff_t last_recv = -1;
 
 	public this(Socket socket) {
 		this.socket = socket;
@@ -27,6 +28,10 @@ class Stream {
 	public abstract ptrdiff_t send(ubyte[] buffer);
 	
 	public abstract ubyte[] receive();
+
+	public pure nothrow @property @safe @nogc ptrdiff_t lastRecv() {
+		return this.last_recv;
+	}
 	
 }
 
@@ -43,19 +48,13 @@ class TcpStream : Stream {
 		return this.socket.send(payload); //TODO send unless the return is equals to payload.length or -1
 	}
 
-	public ubyte[] receive(ref bool closed) {
-		auto recv = this.socket.receive(buffer);
-		if(recv >= 0) {
-			return this.buffer[0..recv].dup;
-		} else if(recv == 0) {
-			closed = true;
-		}
-		return [];
-	}
-
 	public override ubyte[] receive() {
-		bool closed;
-		return this.receive(closed);
+		this.last_recv = this.socket.receive(buffer);
+		if(this.last_recv > 0) {
+			return this.buffer[0..this.last_recv].dup;
+		} else {
+			return [];
+		}
 	}
 
 }
@@ -65,7 +64,7 @@ class UdpStream : Stream {
 	private Address address;
 	private ubyte[] buffer;
 
-	public this(Socket socket, Address address, size_t bufferSize=1492) {
+	public this(Socket socket, Address address=null, size_t bufferSize=1492) {
 		super(socket);
 		this.buffer = new ubyte[bufferSize];
 	}
@@ -74,10 +73,23 @@ class UdpStream : Stream {
 		return this.socket.sendTo(buffer, this.address);
 	}
 
+	public ptrdiff_t sendTo(ubyte[] buffer, Address address) {
+		return this.socket.sendTo(buffer, address);
+	}
+
 	public override ubyte[] receive() {
-		auto recv = this.socket.receiveFrom(this.buffer, this.address);
-		if(recv > 0) {
-			return this.buffer[0..recv].dup;
+		this.last_recv = this.socket.receiveFrom(this.buffer, this.address);
+		if(this.last_recv > 0) {
+			return this.buffer[0..this.last_recv].dup;
+		} else {
+			return [];
+		}
+	}
+
+	public ubyte[] receiveFrom(ref Address address) {
+		this.last_recv = this.socket.receiveFrom(this.buffer, address);
+		if(this.last_recv > 0) {
+			return this.buffer[0..this.last_recv].dup;
 		} else {
 			return [];
 		}

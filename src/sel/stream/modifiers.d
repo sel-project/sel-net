@@ -40,6 +40,10 @@ abstract class ModifierStream : Stream {
 		return this.stream.receive();
 	}
 
+	public override pure nothrow @property @safe @nogc ptrdiff_t lastRecv() {
+		return this.stream.lastRecv();
+	}
+
 }
 
 class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStream if(isNumeric!T || (is(typeof(T.encode)) && isIntegral!(Parameters!(T.encode)[0]))) {
@@ -50,7 +54,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 		enum requiredSize = 1;
 	}
 
-	private immutable size_t maxLength;
+	public size_t maxLength;
 
 	private ubyte[] next;
 	private size_t nextLength = 0;
@@ -113,8 +117,8 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	 * Returns: true if some data has been received, false if the connection has been closed or timed out
 	 */
 	private bool read() {
-		auto recv = this.stream.receive();
-		if(recv.length > 0) {
+		ubyte[] recv = this.stream.receive();
+		if(this.lastRecv > 0) {
 			this.next ~= recv;
 			return true;
 		} else {
