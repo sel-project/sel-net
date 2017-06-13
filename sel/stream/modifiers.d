@@ -25,7 +25,7 @@ import sel.stream.stream : Stream;
 
 abstract class ModifierStream : Stream {
 
-	protected Stream stream;
+	public Stream stream;
 
 	public this(Stream stream) {
 		super(stream.socket);

@@ -15,4 +15,5 @@
 module sel.stream;
 
 public import sel.stream.modifiers : ModifierStream, LengthPrefixedStream, CompressedStream;
+public import sel.stream.raknet : RaknetStream;
 public import sel.stream.stream : Stream, TcpStream, UdpStream;
