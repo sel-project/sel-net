@@ -45,7 +45,13 @@ class TcpStream : Stream {
 	}
 
 	public override ptrdiff_t send(ubyte[] payload) {
-		return this.socket.send(payload); //TODO send unless the return is equals to payload.length or -1
+		size_t sent = 0;
+		while(sent < payload.length) {
+			auto s = this.socket.send(payload[sent..$]);
+			if(s <= 0) return sent;
+			sent += s;
+		}
+		return sent;
 	}
 
 	public override ubyte[] receive() {

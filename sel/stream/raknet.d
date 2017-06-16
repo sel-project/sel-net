@@ -14,7 +14,12 @@
  */
 module sel.stream.raknet;
 
+import core.atomic : atomicOp;
+
+import std.algorithm : min;
 import std.bitmanip : littleEndianToNative, nativeToLittleEndian, nativeToBigEndian, peek;
+import std.conv : to;
+import std.math : ceil;
 import std.socket : Address, Socket;
 
 import sel.stream.stream : Stream;
@@ -32,7 +37,8 @@ class RaknetStream : Stream {
 	
 	private ubyte[] buffer;
 	
-	private int send_count = 0;
+	private shared int send_count = -1;
+	private ushort split_id = 0;
 	
 	public this(Socket socket, Address address, size_t mtu) {
 		super(socket);
@@ -40,13 +46,30 @@ class RaknetStream : Stream {
 		this.mtu = mtu;
 		this.buffer = new ubyte[mtu + 128];
 	}
-	
+
 	public override ptrdiff_t send(ubyte[] _buffer) {
-		if(_buffer.length > mtu) {
-			writeln("buffer is too long!");
-			assert(0);
+		if(_buffer.length > this.mtu) {
+			size_t sent = 0;
+			immutable count = to!uint(ceil(_buffer.length.to!float / this.mtu));
+			immutable sizes = to!uint(ceil(_buffer.length.to!float / count));
+			foreach(order ; 0..count) {
+				ubyte[] current = _buffer[order*sizes..min((order+1)*sizes, $)];
+				ubyte[] _count = nativeToLittleEndian(atomicOp!"+="(this.send_count, 1))[0..3];
+				ubyte[] buffer = [ubyte(140)];
+				buffer ~= _count;
+				buffer ~= ubyte(64 | 16); // info
+				buffer ~= nativeToBigEndian(cast(ushort)(current.length * 8));
+				buffer ~= _count; // message index
+				buffer ~= nativeToBigEndian(count);
+				buffer ~= nativeToBigEndian(this.split_id);
+				buffer ~= nativeToBigEndian(order);
+				buffer ~= current;
+				sent += this.socket.sendTo(buffer, this.address);
+			}
+			this.split_id++;
+			return sent;
 		} else {
-			ubyte[] count = nativeToLittleEndian(this.send_count++)[0..3];
+			ubyte[] count = nativeToLittleEndian(atomicOp!"+="(this.send_count, 1))[0..3];
 			ubyte[] buffer = [ubyte(132)];
 			buffer ~= count;
 			buffer ~= ubyte(64); // info
@@ -73,6 +96,7 @@ class RaknetStream : Stream {
 					//TODO remove from the waiting_ack queue
 					return receive();
 				case 160:
+					writeln("nack: ", buffer[1..$]);
 					// unused
 					return receive();
 				case 128:..case 143:
