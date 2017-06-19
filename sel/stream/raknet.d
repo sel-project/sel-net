@@ -39,6 +39,8 @@ class RaknetStream : Stream {
 	
 	private shared int send_count = -1;
 	private ushort split_id = 0;
+
+	private ubyte[][int] sent;
 	
 	public this(Socket socket, Address address, size_t mtu) {
 		super(socket);
@@ -53,8 +55,9 @@ class RaknetStream : Stream {
 			immutable count = to!uint(ceil(_buffer.length.to!float / this.mtu));
 			immutable sizes = to!uint(ceil(_buffer.length.to!float / count));
 			foreach(order ; 0..count) {
+				immutable c = atomicOp!"+="(this.send_count, 1);
 				ubyte[] current = _buffer[order*sizes..min((order+1)*sizes, $)];
-				ubyte[] _count = nativeToLittleEndian(atomicOp!"+="(this.send_count, 1))[0..3];
+				ubyte[] _count = nativeToLittleEndian(c)[0..3];
 				ubyte[] buffer = [ubyte(140)];
 				buffer ~= _count;
 				buffer ~= ubyte(64 | 16); // info
@@ -65,17 +68,20 @@ class RaknetStream : Stream {
 				buffer ~= nativeToBigEndian(order);
 				buffer ~= current;
 				sent += this.socket.sendTo(buffer, this.address);
+				this.sent[c] = buffer;
 			}
 			this.split_id++;
 			return sent;
 		} else {
-			ubyte[] count = nativeToLittleEndian(atomicOp!"+="(this.send_count, 1))[0..3];
+			immutable c = atomicOp!"+="(this.send_count, 1);
+			ubyte[] count = nativeToLittleEndian(c)[0..3];
 			ubyte[] buffer = [ubyte(132)];
 			buffer ~= count;
 			buffer ~= ubyte(64); // info
 			buffer ~= nativeToBigEndian(cast(ushort)(_buffer.length * 8));
 			buffer ~= count; // message index
 			buffer ~= _buffer;
+			this.sent[c] = buffer;
 			return this.socket.sendTo(buffer, this.address);
 		}
 	}
@@ -93,19 +99,32 @@ class RaknetStream : Stream {
 		if(buffer.length) {
 			switch(buffer[0]) {
 				case 192:
-					//TODO remove from the waiting_ack queue
-					return receive();
+					//writeln("ack: ", getAck(buffer[1..$]));
+					foreach(ack ; getAck(buffer[1..$])) {
+						this.sent.remove(ack);
+					}
+					//return receive();
+					break;
 				case 160:
-					writeln("nack: ", buffer[1..$]);
-					// unused
-					return receive();
+					int[] nacks = getAck(buffer[1..$]);
+					size_t count = 0;
+					foreach(nack ; nacks) {
+						auto sent = nack in this.sent;
+						if(sent) {
+							this.socket.sendTo(*sent, this.address);
+							//if(++count == 32_000) break;
+						}
+					}
+					writeln("sent ", nacks.length, " nacks");
+					//return receive();
+					break;
 				case 128:..case 143:
 					if(buffer.length > 7) {
 						ubyte[4] _count = buffer[1..4] ~ ubyte(0);
 						immutable count = littleEndianToNative!int(_count);
 						// send ack
 						// id, length (2), unique, from (3), to (3)
-						this.socket.sendTo([ubyte(192), ubyte(0), ubyte(1), ubyte(true)] ~ _count, this.address);
+						this.socket.sendTo([ubyte(192), ubyte(0), ubyte(1), ubyte(true)] ~ buffer[1..4], this.address);
 						// handle packet
 						size_t index = 4;
 						immutable info = buffer[index++];
@@ -155,4 +174,22 @@ class RaknetStream : Stream {
 		return [];
 	}
 	
+}
+
+int readTriad(ubyte[] data) {
+	ubyte[4] bytes = data ~ ubyte(0);
+	return littleEndianToNative!int(bytes);
+}
+
+int[] getAck(ubyte[] buffer) {
+	assert(buffer[1] == 1);
+	if(buffer[2] == 0) {
+		int[] ret;
+		foreach(num ; readTriad(buffer[3..6])..readTriad(buffer[6..9])+1) {
+			ret ~= num;
+		}
+		return ret;
+	} else {
+		return [readTriad(buffer[3..6])];
+	}
 }
