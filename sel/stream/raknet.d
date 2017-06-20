@@ -182,14 +182,16 @@ int readTriad(ubyte[] data) {
 }
 
 int[] getAck(ubyte[] buffer) {
-	assert(buffer[1] == 1);
-	if(buffer[2] == 0) {
-		int[] ret;
-		foreach(num ; readTriad(buffer[3..6])..readTriad(buffer[6..9])+1) {
-			ret ~= num;
+	int[] ret;
+	size_t index = 1;
+	foreach(i ; 0..buffer[index++]) {
+		if(buffer[index++]) {
+			ret ~= readTriad(buffer[index..index+=3]);
+		} else {
+			foreach(num ; readTriad(buffer[index..index+=3])..readTriad(buffer[index..index+=3])+1) {
+				ret ~= num;
+			}
 		}
-		return ret;
-	} else {
-		return [readTriad(buffer[3..6])];
 	}
+	return ret;
 }
