@@ -24,7 +24,7 @@ import std.socket : Address, Socket;
 
 import sel.stream.stream : Stream;
 
-debug import std.stdio : writeln;
+//debug import std.stdio : writeln;
 
 class RaknetStream : Stream {
 	
@@ -115,7 +115,7 @@ class RaknetStream : Stream {
 							//if(++count == 32_000) break;
 						}
 					}
-					writeln("sent ", nacks.length, " nacks");
+					//writeln("sent ", nacks.length, " nacks");
 					//return receive();
 					break;
 				case 128:..case 143:
