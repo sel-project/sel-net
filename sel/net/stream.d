@@ -12,7 +12,7 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
-module sel.stream.stream;
+module sel.net.stream;
 
 import std.socket : Socket, Address;
 

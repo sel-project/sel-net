@@ -12,7 +12,7 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
-module sel.stream.modifiers;
+module sel.net.modifiers;
 
 import std.bitmanip : _write = write, _read = read;
 import std.conv : to;
@@ -21,7 +21,7 @@ import std.system : Endian;
 import std.traits : isNumeric, isIntegral, Parameters;
 import std.zlib : Compress, UnCompress;
 
-import sel.stream.stream : Stream;
+import sel.net.stream : Stream;
 
 abstract class ModifierStream : Stream {
 

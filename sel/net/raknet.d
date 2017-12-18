@@ -12,7 +12,7 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
-module sel.stream.raknet;
+module sel.net.raknet;
 
 import core.atomic : atomicOp;
 
@@ -22,7 +22,7 @@ import std.conv : to;
 import std.math : ceil;
 import std.socket : Address, Socket;
 
-import sel.stream.stream : Stream;
+import sel.net.stream : Stream;
 
 //debug import std.stdio : writeln;
 

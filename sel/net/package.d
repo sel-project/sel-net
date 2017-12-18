@@ -12,8 +12,8 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
-module sel.stream;
+module sel.net;
 
-public import sel.stream.modifiers : ModifierStream, LengthPrefixedStream, CompressedStream;
-public import sel.stream.raknet : RaknetStream;
-public import sel.stream.stream : Stream, TcpStream, UdpStream;
+public import sel.net.modifiers : ModifierStream, LengthPrefixedStream, CompressedStream;
+public import sel.net.raknet : RaknetStream;
+public import sel.net.stream : Stream, TcpStream, UdpStream;
