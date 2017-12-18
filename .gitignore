@@ -3,3 +3,4 @@
 *.selections.json
 *.userprefs
 .dub
+app.d

@@ -46,6 +46,14 @@ abstract class ModifierStream : Stream {
 
 }
 
+class PaddedStream(size_t paddingIndex) : ModifierStream {
+
+	public this(Stream stream) {
+
+	}
+
+}
+
 class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStream if(isNumeric!T || (is(typeof(T.encode)) && isIntegral!(Parameters!(T.encode)[0]))) {
 	
 	static if(isNumeric!T) {
