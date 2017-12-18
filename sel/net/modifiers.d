@@ -48,8 +48,31 @@ abstract class ModifierStream : Stream {
 
 class PaddedStream(size_t paddingIndex) : ModifierStream {
 
-	public this(Stream stream) {
+	private ubyte[] padding;
 
+	public this(Stream stream, ubyte[] padding) {
+		super(stream);
+	}
+
+	public override ptrdiff_t send(ubyte[] payload) {
+		static if(paddingIndex == 0) {
+			payload = this.padding ~ payload;
+		} else {
+			payload = payload[0..paddingIndex] ~ this.padding ~ payload[paddingIndex..$];
+		}
+		return super.send(payload);
+	}
+
+	public override ubyte[] receive() {
+		ubyte[] payload = super.receive();
+		if(payload.length >= this.padding.length + paddingIndex) {
+			static if(paddingIndex == 0) {
+				return payload[this.padding.length..$];
+			} else {
+				return payload[0..this.padding.length] ~ payload[this.padding.length..$];
+			}
+		}
+		return [];
 	}
 
 }
@@ -83,7 +106,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 		} else {
 			payload = T.encode(payload.length.to!(Parameters!(T.encode)[0])) ~ payload;
 		}
-		return this.stream.send(payload);
+		return super.send(payload);
 	}
 	
 	/**
@@ -125,7 +148,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	 * Returns: true if some data has been received, false if the connection has been closed or timed out
 	 */
 	private bool read() {
-		ubyte[] recv = this.stream.receive();
+		ubyte[] recv = super.receive();
 		if(this.lastRecv > 0) {
 			this.next ~= recv;
 			return true;

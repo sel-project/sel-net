@@ -14,5 +14,6 @@
  */
 module sel.net;
 
+public import sel.net.http : HttpStream, Request, Response;
 public import sel.net.modifiers : ModifierStream, PaddedStream, LengthPrefixedStream, CompressedStream;
 public import sel.net.stream : Stream, TcpStream, UdpStream, RaknetStream;
