@@ -22,25 +22,47 @@ import std.conv : to;
 import std.math : ceil;
 import std.socket : Address, Socket;
 
+/**
+ * Generic abstract stream. It stores a socket.
+ */
 class Stream {
-	
+
+	/**
+	 * Socket used for writing and reading data.
+	 */
 	public Socket socket;
 	protected ptrdiff_t last_recv = -1;
 
 	public this(Socket socket) {
 		this.socket = socket;
 	}
-	
+
+	/**
+	 * Sends bytes to the connected socket.
+	 * Returns: the number of bytes sent.
+	 */
 	public abstract ptrdiff_t send(ubyte[] buffer);
-	
+
+	/**
+	 * Receives bytes from the connected socket.
+	 * Returns: the received data or an empty array on failure.
+	 */
 	public abstract ubyte[] receive();
 
+	/**
+	 * Indicates the result of the last receive call performed
+	 * on the connected socket.
+	 */
 	public pure nothrow @property @safe @nogc ptrdiff_t lastRecv() {
 		return this.last_recv;
 	}
 	
 }
 
+/**
+ * Stream optimised for TCP connections.
+ * The given socket should be blocking.
+ */
 class TcpStream : Stream {
 
 	private ubyte[] buffer;
@@ -50,16 +72,26 @@ class TcpStream : Stream {
 		this.buffer = new ubyte[bufferSize];
 	}
 
+	/**
+	 * Sends a full payload (even when it biggen than the send buffer)
+	 * and only returns when it is sent or on failure.
+	 * Returns: the number of bytes sent (if not payload.length, an error has occured).
+	 */
 	public override ptrdiff_t send(ubyte[] payload) {
 		size_t sent = 0;
 		while(sent < payload.length) {
 			auto s = this.socket.send(payload[sent..$]);
-			if(s <= 0) return sent;
+			if(s <= 0) break;
 			sent += s;
 		}
 		return sent;
 	}
 
+	/**
+	 * Receive a single stream of data until the receive buffer is empty
+	 * or an error occurs.
+	 * Returns: an array with the received data.
+	 */
 	public override ubyte[] receive() {
 		this.last_recv = this.socket.receive(buffer);
 		if(this.last_recv > 0) {
@@ -71,6 +103,9 @@ class TcpStream : Stream {
 
 }
 
+/**
+ * Stream optimised for UDP connections.
+ */
 class UdpStream : Stream {
 	
 	private Address address;
