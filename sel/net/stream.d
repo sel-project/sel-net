@@ -175,7 +175,7 @@ class RaknetStream : Stream {
 			foreach(order ; 0..count) {
 				immutable c = atomicOp!"+="(this.send_count, 1);
 				ubyte[] current = _buffer[order*sizes..min((order+1)*sizes, $)];
-				ubyte[] _count = nativeToLittleEndian(c)[0..3];
+				ubyte[3] _count = nativeToLittleEndian(c)[0..3];
 				ubyte[] buffer = [ubyte(140)];
 				buffer ~= _count;
 				buffer ~= ubyte(64 | 16); // info
@@ -192,7 +192,7 @@ class RaknetStream : Stream {
 			return sent;
 		} else {
 			immutable c = atomicOp!"+="(this.send_count, 1);
-			ubyte[] count = nativeToLittleEndian(c)[0..3];
+			ubyte[3] count = nativeToLittleEndian(c)[0..3];
 			ubyte[] buffer = [ubyte(132)];
 			buffer ~= count;
 			buffer ~= ubyte(64); // info
