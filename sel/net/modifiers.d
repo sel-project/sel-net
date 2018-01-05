@@ -101,8 +101,9 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	 */
 	public override ptrdiff_t send(ubyte[] payload) {
 		static if(isNumeric!T) {
-			payload = new ubyte[T.length] ~ payload;
-			_write!(T, endianness)(payload.length.to!T, payload, 0);
+			immutable length = payload.length.to!T;
+			payload = new ubyte[requiredSize] ~ payload;
+			_write!(T, endianness)(payload, length, 0);
 		} else {
 			payload = T.encode(payload.length.to!(Parameters!(T.encode)[0])) ~ payload;
 		}
@@ -118,6 +119,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 	
 	private ubyte[] receiveImpl() {
 		if(this.nextLength == 0) {
+			// read length of the packet
 			while(this.next.length < requiredSize) {
 				if(!this.read()) return [];
 			}
@@ -134,6 +136,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : ModifierStre
 				return this.receiveImpl();
 			}
 		} else {
+			// read the packet with the given length
 			while(this.next.length < this.nextLength) {
 				if(!this.read()) return [];
 			}
