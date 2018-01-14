@@ -14,6 +14,7 @@
  */
 module sel.net.http;
 
+import std.array : Appender;
 import std.conv : to, ConvException;
 import std.socket : Socket;
 import std.string : join, split, toUpper, toLower, strip;
@@ -243,6 +244,7 @@ struct Request {
 	 * ---
 	 */
 	public string toString() {
+		if(this.data.length) this.headers["Content-Length"] = to!string(this.data.length);
 		return encodeHTTP(this.method.toUpper() ~ " " ~ this.path ~ " HTTP/1.1", this.headers, this.data);
 	}
 
@@ -420,18 +422,25 @@ struct Response {
 	
 }
 
+private enum CR_LF = "\r\n";
+
 private string encodeHTTP(string status, string[string] headers, string content) {
-	string[] ret = [status];
+	Appender!string ret;
+	ret.put(status);
+	ret.put(CR_LF);
 	foreach(key, value; headers) {
-		ret ~= key ~ ": " ~ value;
+		ret.put(key);
+		ret.put(": ");
+		ret.put(value);
+		ret.put(CR_LF);
 	}
-	ret ~= "";
-	if(content.length) ret ~= content;
-	return join(ret, "\r\n");
+	ret.put(CR_LF); // empty line
+	ret.put(content);
+	return ret.data;
 }
 
 private bool decodeHTTP(string str, ref string status, ref string[string] headers, ref string content) {
-	string[] spl = str.split("\r\n");
+	string[] spl = str.split(CR_LF);
 	if(spl.length > 1) {
 		status = spl[0];
 		size_t index;
@@ -443,7 +452,7 @@ private bool decodeHTTP(string str, ref string status, ref string[string] header
 				return false; // invalid header
 			}
 		}
-		content = join(spl[index..$], "\r\n");
+		content = join(spl[index+1..$], "\r\n");
 		return true;
 	} else {
 		return false;
