@@ -166,6 +166,7 @@ private enum defaultHeaders = ["Server": "sel-net/1.0"]; //TODO load version fro
  * ---
  * Request("GET", "/");
  * Request(Request.POST, "/subscribe.php");
+ * ---
  */
 struct Request {
 

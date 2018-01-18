@@ -72,8 +72,6 @@ class WebSocketServerStream : ModifierStream {
 	
 	public override ubyte[] receive() {
 		ubyte[] payload = this.stream.receive();
-		import std.stdio : writeln;
-		writeln(payload);
 		if(payload.length > 2 && (payload[0] & 0b1111) == 1) {
 			bool masked = (payload[1] & 0b10000000) != 0;
 			size_t length = payload[1] & 0b01111111;
