@@ -12,6 +12,12 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
+/**
+ * Copyright: 2017-2018 sel-project
+ * License: LGPL-3.0
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-net/sel/net/websocket.d, sel/net/websocket.d)
+ */
 module sel.net.websocket;
 
 import std.base64 : Base64;

@@ -12,6 +12,12 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
+/**
+ * Copyright: 2017-2018 sel-project
+ * License: LGPL-3.0
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-net/sel/net/modifiers.d, sel/net/modifiers.d)
+ */
 module sel.net.modifiers;
 
 import std.bitmanip : _write = write, _read = read;

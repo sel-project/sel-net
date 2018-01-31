@@ -12,6 +12,12 @@
  * See the GNU Lesser General Public License for more details.
  * 
  */
+/**
+ * Copyright: 2017-2018 sel-project
+ * License: LGPL-3.0
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-net/sel/net/package.d, sel/net/package.d)
+ */
 module sel.net;
 
 public import sel.net.http : HttpStream, StatusCodes, Request, Response;
