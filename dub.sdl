@@ -1,7 +1,8 @@
 name "sel-net"
 description "Lightweight library for simple TCP, UDP and HTTP I/O"
 authors "sel-project"
-license "LGPL-3.0"
+license "MIT"
+copyright: Copyright (c) 2017-2018 sel-project
 targetType "library"
 importPaths "."
 sourcePaths "."
